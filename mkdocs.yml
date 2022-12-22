@@ -3,7 +3,7 @@ site_url: https://example.com/
 nav:
     - Home: index.md
     - eBPF overview: ebpf.md
-    - An implement in zCore: zcore.md
-    - migrate to rCore tutorial: rcore.md
+    - zCore implementation: zcore.md
+    - rCore tutoria migration: rcore.md
 
 theme: readthedocs

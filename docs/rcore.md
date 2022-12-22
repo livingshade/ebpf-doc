@@ -1,39 +1,43 @@
 # migrate eBPF to rCore tutorial
 
-This is a step-by-step tutorial of how to migrate eBPF to rCore.
+This is a step-by-step tutorial of how to migrate eBPF to [rCore](https://github.com/cubele/rCore-Tutorial-Code-2022A).
 
 ## Environment Setup
 
-Note that rCore tutorial only provides rust user programs but their is no rust support for eBPF yet. In that case, we need to use uCore-test to compile the user programs because uCore and rCore share the same ABI.
+Note that rCore tutorial only provides rust user programs but their is no rust support for eBPF yet. In that case, we need to use [uCore-test](https://github.com/livingshade/uCore-Tutorial-Test-2022A) to compile the user programs because uCore and rCore share the same ABI.
 
 First, clone the repo
 
 ```bash
 git clone https://github.com/cubele/rCore-Tutorial-Code-2022A rcore-ebpf
 cd rcore-ebpf
+git submodule update --init --recursive
 ```
 
 ### Install dependencies
 
 We need rust, llvm, clang, qemu and musl toolchains.
 
+You may need to install toolchains from [musl.cc](https://musl.cc/), qemu version >= 6.0.0, clang version = 12, and add them to your PATH.
+
 ```bash
+make env # this will install rust dependencies
 ```
 
 ### Change config
 
-You need to mannually change the path config in `user/ebpf/build.sh`, you basically just need to change the prefix of `builddir, ucoredir, targetdir`, use absolute path.
+You need to mannually change the path config in `user/ebpf/build.sh`, you basically just need to change the prefix of `builddir, ucoredir, targetdir`, use absolute path. Then,
 
 ```bash
 cd os8
 make run
 ```
 
-You should see that rCore is started and the application is running. Run `ebpf_user_loadprogextest` and `ebpf_user_kernmaptest` to see the effect.
+You should see that rCore is started and the application is running. Run `ebpf_user_loadprogextest` and `ebpf_user_kernmaptest` for a glimpse.
 
 ## Migration
 
-According to the [eBPF tutorial], we now needs to add some os-dependent code to make it work. We only needs to add the syscall interface and implement the `osutils.rs` to provide necessary kernel functions. 
+In to the section [overview](ebpf.md), we now needs to add some os-dependent code to make it work. We only needs to add the syscall interface and implement the `osutils.rs` to provide necessary kernel functions.
 
 We should always bear in mind that rCore kernel has its own page table, rather than those share with user space, like Linux and zCore.
 
@@ -111,7 +115,7 @@ impl ThreadLike for TaskControlBlock {
 }
 ```
 
-Note that we don't have a tid in rCore. So we just return 0. And we don't have a process name. So we just return a dummy string. Also, we need to implement the `os_current_thread` function.
+Note that we don't have a `tid` in rCore. So just return 0. And we don't have a process name. So we just return a dummy string. Also, we need to implement the `os_current_thread` function.
 
 ```rust
 pub fn os_current_thread() -> Arc<dyn ThreadLike> {
@@ -139,7 +143,7 @@ pub fn os_console_write_str(s: &str) {
 }
 ```
 
-Again, rCore a single-core system. So we just return 0 for `os_get_current_cpu`. And we use `Stdout` to write to the console.
+Again, rCore is a single-core system. So we just return 0 for `os_get_current_cpu`. And we use `Stdout` to write to the console.
 
 * `os_copy_from_user` and `os_copy_to_user` that copy data from/to user space. Because some OS use virtual memory, we need to translate the address. This two functions are primitives for other memory related functions like `get_generic_from_user` and all other syscall branches.
 
@@ -264,11 +268,11 @@ Now we need add user program that test our eBPF utility. There are 4 user tests.
 * `ebpf_user_loadprogextest.c` is a test that load a BPF kernel program `context.c` from user program and print out the registers. This tests the kprobe and some helper functions.
 * `ebpf_user_kernmaptest.c` is a test that load a BPF kernel program `map.c` from user program and test the map operations from kernel program. This tests the bpf map in kernel space.
 
-You can simple run them in `make run`.
+You can run them using `make run`.
 
 ### Add more user programs
 
-If you want add more user programs, you need to add the source file in `ucore/src` just like the 4 tests above.
+If you want to add more user programs, you need to add the source file in `ucore/src` just like the 4 tests above.
 
 If you want to add kernel BPF programs and load them, you need to add the kernel source file in `user/ebpf/kern` just like `map.c` and `context.c`, and do the following thing:
 
@@ -281,13 +285,13 @@ python3 hex2char.py
 # copy map2.dump to your user program, take ebpf_user_loadprogextest.c as example
 ```
 
-That is because rCore tutorial does not support `mmap` or `malloc`, we have to mannually copy the byte code into a `char []` array. `hex2char.py` just read a ELF and print out its hex value byte by byte. We also have to mannually set the length of the program as argument. You can refer to zCore test program if you have implmented `mmap` or `malloc` and `fstat` for kernel.
+That is because rCore tutorial does not support `mmap` or `malloc`, we have to mannually copy the byte code into a `char []` . `hex2char.py` reads an ELF and print out its hex value byte by byte. We also have to mannually set the length of the program as argument. You can refer to zCore test program if you have implmented `mmap` or `malloc` and `fstat` for kernel.
 
-Don't forget to change `build.sh` before you run `make run` in `os8`
+Don't forget to change `build.sh` before you type `make run`
 
 ### Details about Makefile
 
-You can skip this section if you are not interested in the details. But if you want to migrate from scratch, you need to know the whole procedure.
+This section can be skipped if you are not interested in the details. But to do it from scratch, you need to know the whole procedure.
 
 We need to compile the user program and link it with our library. We just use uCore-Test's makefile because its compatitble with rCore. But for eBPF programs, we need a user library `bpf.h` and `bpf.c`, in `ucore/include`, `ucore/lib`, respectively.
 
@@ -299,4 +303,4 @@ You can refer to makefile `fs-img` and `fn easy_fs_pack` for the reason. Those s
 
 ## Further work
 
-Currently, the symbol table is not supported, thus the kprobe attach target is hardcoded in `tracepoint.rs::resolve_symbol` as `sys_open`. You can try to support it by adding the symbol table utility. You can refer to zCore's implementation. 
+Currently, the symbol table is not supported, thus the kprobe attach target is hardcoded in `tracepoint.rs::resolve_symbol` as `sys_open`. You can try to support it by adding the symbol table utility. You may refer to [zCore's repo](https://cubele.github.io/probe-docs/ebpf%E7%A7%BB%E6%A4%8D/zCore%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD/) and [this blog](https://cubele.github.io/probe-docs/ebpf%E7%A7%BB%E6%A4%8D/zCore%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD/)
