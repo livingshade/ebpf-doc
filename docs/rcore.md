@@ -1,6 +1,6 @@
 # migrate eBPF to rCore tutorial
 
-This is a step-by-step tutorial of how to migrate eBPF to [rCore](https://github.com/cubele/rCore-Tutorial-Code-2022A).
+This is a step-by-step tutorial of how to migrate eBPF to [rCore](https://github.com/cubele/rCore-Tutorial-Code-2022A). You might also refer to [zCore](zcore.md) implmentaion for comparsion.
 
 ## Environment Setup
 
