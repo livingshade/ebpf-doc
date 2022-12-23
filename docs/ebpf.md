@@ -65,3 +65,32 @@ We won't talk about JIT here. We simple take them as library. One could refer to
 We can skip verification, but we can't skip relocation. The relocation is needed mainly because the program is loaded into kernel space, and the program needs to access the BPF maps.BPF helper functions also need to be relocated.
 
 Note that in Linux kernel, the relocation and verification are coupled and it is more than maps and helpers that needs to be relocated. And some relocations are done in user space by libbpf. For simplicity, we will not discuss it here, but again you could refer to [eBPF hitch hiking blog](https://yesh0.github.io/ebpf-analyzer/).
+
+# Code structure
+
+The basic code structure is as follows:
+
+```bash
+src
+│   mod.rs
+│   .... # those are unrelated to eBPF
+│
+└───ebpf
+│   │   mod.rs
+│   │   osutil.rs
+│   │   program.rs
+│   │   tracepoints.rs
+│   │   retcode.rs
+│   │   consts.rs
+│   │   helpers.rs
+│   │
+│   └───map
+│       │   mod.rs
+│       │   internal.rs
+│       │   hash.rs
+│       │   array.rs
+```
+
+You should modify the OS-level syscall, check the `BpfCommand` in `consts.rs` and redirect those function to `sys_bpf_*` in `osutil.rs`.
+
+Most of files should be OS-independent.
