@@ -22,7 +22,7 @@ Install qemu 7.1.0, you might need to compile from source. And add qemu to your 
 
 Install clang-12.
 
-And install other dependencies describe in zCore readme.
+And install other dependencies described in zCore readme.
 
 ## build and run
 
